@@ -1,6 +1,11 @@
 # Script that, given an Hopfield Model, implements the (stochastic)
 # Euler-Mayorama method of integration for the solution of a given SDE
 # time [0,T]
+
+# Paper: "Firing Rate Models as Associative Memory: Excitatory-Inhibitory Balance for Robust Retrieval"
+# Code author: Simone Betteti
+# Year: 2024 
+
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -79,11 +84,12 @@ class EM:
     # Function that implements the positive activation function
     def g_fun_sig(self, y):
         # Definition of the flection point
-        xstar = 0.8
-        z = 1/(1+np.exp(-self.delta*(y-xstar-1/(2*self.delta))))
+        xstar = 0.2
+        z = 1/(1+np.exp(-4*self.delta*(y-xstar-1/(2*self.delta))))
 
         return z
     
+    # Function that implements the rectified tanh
     def g_fun_cut(self, y):
         # Definition of the cut point
         xstar = 0.75

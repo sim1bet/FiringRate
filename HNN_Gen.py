@@ -2,6 +2,11 @@
 # from which to create instances of an Hopfield Network either with
 # Orthogonal binary memory patterns
 # Random binary memory patterns
+
+# Paper: "Firing Rate Models as Associative Memory: Excitatory-Inhibitory Balance for Robust Retrieval"
+# Code author: Simone Betteti
+# Year: 2024 
+
 import numpy as np
 import random
 
@@ -9,7 +14,7 @@ class HNN:
     # Initializer for the Hopfield Class
     def __init__(self, p, eps):
         # Definition of the population size as a power of 2
-        self.N = 1024
+        self.N = 1000
         # Definition of the probability of activation
         self.p = p
         # Definition of the admissible number of memories
@@ -36,11 +41,11 @@ class HNN:
             self.IC = C[:,idx_c]
         elif D == 'NI':
             # Fix the number of memories
-            self.P = 7
+            self.P = 6
             # Generate the memory matrix and the  
             self.mems = np.zeros((self.N, self.P))
             # Construction of the first memory
-            idx_act = random.sample(range(2056), 408)
+            idx_act = random.sample(range(1000), 200)
             self.mems[idx_act,0] = 1
             
             # Iterative construction of the remaining random dependent memories
@@ -55,16 +60,16 @@ class HNN:
                 idx_ncor_pot = np.nonzero(v==0)[0]
                 # Extraction of the location of the correlated indices
                 np.random.shuffle(idx_cor_pot)
-                idx_cor = idx_cor_pot[:164]#164
+                idx_cor = idx_cor_pot[:80]
                 # Extraction of the location of the non-correlated indices
                 np.random.shuffle(idx_ncor_pot)
-                idx_ncor = idx_ncor_pot[:244]#244
+                idx_ncor = idx_ncor_pot[:120]
                 
                 # Setting of the new memory
                 self.mems[idx_cor,m] = 1
                 self.mems[idx_ncor,m] = 1
                 
-            self.IC = np.random.choice([0,1], (self.N,3), p=[1-self.p, self.p])#self.mems[:,-2:]#
+            self.IC = np.random.choice([0,1], (self.N,3), p=[1-self.p, self.p])
             self.mems = self.mems[:,:-2]
             self.P = self.P-2
                 

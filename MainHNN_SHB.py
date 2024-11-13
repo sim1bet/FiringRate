@@ -1,6 +1,10 @@
-# Script for the implementation of an input driven Hopfield model with 
+# Script for the implementation of a firing rate model with 
 # either only short term synaptic plasticity or both short and long
 # term synaptic components
+
+# Paper: "Firing Rate Models as Associative Memory: Excitatory-Inhibitory Balance for Robust Retrieval"
+# Code author: Simone Betteti
+# Year: 2024 
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -94,31 +98,3 @@ for j in range(np.shape(HN.IC)[1]):
 # Plotting of the overlap during training
 title = 'AverageOverlap.pdf'
 PlotOverlap(Y, t_end, title)
-
-# Definition of the entire solution vector
-Y1 = np.zeros((3,T))
-
-buff = 0.7*np.ones((HN.N,))+0.001*np.random.randn(HN.N)
-# Generation of the Euler-Mayorama Integrator for the SDE
-EMa = EM(HN, t_ini, t_end, dt, buff, D, gam)
-# Integration of the system over the time interval
-EMa.Eu_Ma_Test(HN, sigma, u_tot, ac)
-
-for v in range(T):
-    Y1[0,v] = np.dot(np.ones((HN.N)),EMa.z[:,v])/HN.N
-
-buff_y = np.zeros((T,))
-for j in range(HN.P):
-    for v in range(T):
-        buff_y[v] = np.dot(EMa.z[:,v],HN.mems[:,j])/(HN.N)
-        
-    if np.sum(buff_y)>np.sum(Y[1,:]):
-        Y1[1,:] = np.copy(np.transpose(buff_y))
-
-for j in range(np.shape(HN.IC)[1]):
-    for v in range(T):
-        Y[2,v] += (1/np.shape(HN.IC)[1])*np.dot(EMa.y[:,v],HN.IC[:,j])/(HN.N*HN.p)
-
-
-title = 'OneMemory'
-PlotOverlap(Y1, t_end, title) 

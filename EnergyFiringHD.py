@@ -1,4 +1,9 @@
 # Script for the computation of the Energy function associated to different firing rate models
+
+# Paper: "Firing Rate Models as Associative Memory: Excitatory-Inhibitory Balance for Robust Retrieval"
+# Code author: Simone Betteti
+# Year: 2024 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -14,6 +19,7 @@ plt.rcParams.update(params)
 
 # Definition of the inverse function(s) and integrals
 
+# Inverse and integral of the sigmoid activation function
 def Sigmoid(x,sl, xstar):
     # Definition of the inverse functions
     inv_phi = -(1/sl)*np.log((1/x)-1)+xstar+1/(2*sl)
@@ -23,12 +29,14 @@ def Sigmoid(x,sl, xstar):
 
     return inv_phi, inte
 
+# Sigmoid activation function
 def SigmoidF(x, sl, xstar):
     # definition of the activation
     phi = 1/(1+np.exp(-sl*(x-xstar-1/(2*sl))))
 
     return phi
 
+# Inverse and integral of the rectified tanh activation function
 def SatTanh(x,sl):
     # Definition of the saturation point
     x_star = 0.2
@@ -40,6 +48,7 @@ def SatTanh(x,sl):
 
     return inv_phi, inte
 
+# Rectified tanh activation function
 def SatTanhF(x,sl):
     # Definition of the saturation point
     x_star = 0.2
@@ -84,17 +93,17 @@ def SynMat(alpha, beta, gamma, N):
 # Definition of the network size
 N = 1024
 # Definition of the slope for the sigmoid
-sl = 4.8
+sl = 4.8*4
 # Definition of the necessary parameters
-xstar = 0.6
+xstar = 0.2
 # Definition of the memory values
 #Positive gamma
 #a = 0.1; b = 0.95
 # Negative gamma 
 a = -0.3; b = 0.95
 # Definition of the respective activation values
-#phia = SigmoidF(a, sl, xstar); phib = SigmoidF(b, sl, xstar)
-phia = SatTanhF(a, sl); phib = SatTanhF(b, sl)
+phia = SigmoidF(a, sl, xstar); phib = SigmoidF(b, sl, xstar)
+#phia = SatTanhF(a, sl); phib = SatTanhF(b, sl)
 
 # Define the difference with the boundary
 boundary_diff = 1 - phib
@@ -136,8 +145,8 @@ for h in range(np.size(x)):
             E[h,k] = 10000
         else:
             for i in range(N):
-                inv_bf, int_bf = SatTanh(v[i], sl)
-                #inv_bf, int_bf = Sigmoid(v[i], sl, xstar)
+                #inv_bf, int_bf = SatTanh(v[i], sl)
+                inv_bf, int_bf = Sigmoid(v[i], sl, xstar)
 
                 inv_phi[i] = inv_bf
                 inte[i] = int_bf
@@ -167,11 +176,8 @@ ax1.scatter(0.01, 0.01, vmi-5, color='purple', linewidth=8.0)
 ax1.text(0.01+0.07, 0.01-0.08, vmi-5, s=r'$\vec{0}$', color='black')
 ax1.set_xlabel(r'$t_{1}$')
 ax1.set_ylabel(r'$t_{2}$')
-#ax1.legend()
-#ax1.set_zlabel('z')
 ax1.set_title(r'$\text{E}_{FR}(x)$')
 ax1.grid(False)
-#ax1.axis('off')
 plt.savefig(txt_en,bbox_inches='tight',format='pdf')
 plt.close()
 

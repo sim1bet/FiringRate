@@ -1,6 +1,11 @@
 # Code for the evaluation of the stability of the model based on the parameters 
 # rho, x^{\star}
 # The phase diagram requires the choice \gamma>0 or \gamma<0
+
+# Paper: "Firing Rate Models as Associative Memory: Excitatory-Inhibitory Balance for Robust Retrieval"
+# Code author: Simone Betteti
+# Year: 2024 
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -24,18 +29,18 @@ def Memories(N, P, q):
 
     return mems
 
+# Definition of the memories (deterministic)
 def Memories_det(q, N):
 
-    P = np.int(np.floor(1+1/q))
+    P = int(np.floor(1+1/q))
 
     mems = np.zeros((N,P))
 
-    cor = np.int(q*q*N)
-    it = np.int(np.floor(q*(1-q)*N))
+    cor = int(q*q*N)
+    it = int(np.floor(q*(1-q)*N))
 
     mems[:cor,:]=np.ones((cor,P))
 
-    #for i in range(it-1):
     for i in range(it):
         mems[cor+i*P:cor+(i+1)*P,:] = np.eye(P)
 
@@ -59,20 +64,21 @@ def W_gen(mems, N, alpha, gamma, q):
 
 # Functions for the definition of the activation functions and their derivatives
 
-# Block for the logistic sigmoid actvation function
+# Function for the logistic sigmoid actvation
 def Sigmoid(y, rho, xstar):
 
     phi = 1/(1+np.exp(-4*rho*(y-xstar-(1/(2*rho)))))
 
     return phi
 
+# Function for the derivative of the logistic sigmoid actvation
 def DSigmoid(y, rho, xstar):
 
     dphi = 4*rho*np.exp(-4*rho*(y-xstar-(1/(2*rho))))/(1+np.exp(-4*rho*(y-xstar-(1/(2*rho)))))**(2)
 
     return dphi
 
-# Block for the rectified hyperbolic tangent
+# Function for the rectified hyperbolic tangent
 def SatTanh(y, rho, xstar):
     if np.size(y)>1:
         # Definition of the indices to zero
@@ -88,6 +94,7 @@ def SatTanh(y, rho, xstar):
 
     return phi
 
+# Function for the derivative of the rectified hyperbolic tangent
 def DSatTanh(y, rho, xstar):
     if np.size(y)>1:
         # Definition of the indices to zero
@@ -108,10 +115,10 @@ def DSatTanh(y, rho, xstar):
 # Definition of the population size
 N = 1000
 # Definition of the number of memories
-P = 10
+P = 6
 # Definition of the parameters x0 and x1
 # Definition of the sign of gamma: 'N' --> negative; 'P' --> positive
-g = 'P'
+g = 'N'
 if g == 'N':
     # Negative gamma
     a = -0.3; b = 0.95
@@ -139,18 +146,11 @@ xstar = np.linspace(start = 0, stop = 0.9, num = mx)
 
 # Definition of the matrix for the phase diagram
 Q = np.zeros((mx,mx))
-Q_max = np.zeros((mx,mx))
-Q_min = np.zeros((mx,mx))
-# Definition of the gamma/alpha matrix
-A = np.zeros((mx,mx))
 
 # Definition of the matrix for the stability condition
-S = np.ones((mx,mx))
+S = np.zeros((mx,mx))
 # Definition of the matrices for the instability conditions
-S_ins_1 = np.zeros((mx,mx))
 S_ins_2 = np.zeros((mx,mx))
-# Definition of the x^{\star} value
-#xstar = 0.7
 
 for i in tqdm(range(mx)):
     for j in range(mx):
@@ -162,7 +162,6 @@ for i in tqdm(range(mx)):
             phia = Sigmoid(a, rho[i], xstar[j]); phib = Sigmoid(b, rho[i], xstar[j])
             da = DSigmoid(a, rho[i], xstar[j]); db = DSigmoid(b, rho[i], xstar[j])
         elif act == 'T':
-            #a = xstar-deltai[j]; b = xstar+deltai[j]
             phia = SatTanh(a, rho[i], xstar[j]); phib = SatTanh(b, rho[i], xstar[j])
             da = DSatTanh(a, rho[i], xstar[j]); db = DSatTanh(b, rho[i], xstar[j])
 
@@ -173,22 +172,18 @@ for i in tqdm(range(mx)):
         # Definition of the synaptic parameters
         alpha, gamma = W_para(a, b, phia, phib, q)
 
-        # Update of the gamma/alpha matrix
-        if gamma > alpha:
-            A[i,j] = 1
-
         # Definition of the maximal synaptic parameter
         spar = np.max([alpha, gamma])
 
         # Sufficient stability condition
-        if eta*spar < 1:
-            S[i,j] = 0
+        if eta*spar >= 1:
+            S[i,j] = 1
 
-        # First instability condition
-        if eta_min*spar > 1:
-            S_ins_1[i,j] = 1
-        # Second instability condition
-        if eta*(q*alpha+(1-q)*gamma) > 1:
+        # instability factor 
+        #inst = np.max([da*(q*alpha+(1-q)*gamma),db*((1-q)*alpha+q*gamma)])
+        inst_alt = np.max([q*(gamma-alpha)*(db-da)-(1-db*alpha)*(1-da*gamma),q*db*((1-q)*alpha+q*gamma)-1])
+        # Instability condition
+        if inst_alt > 0:
             S_ins_2[i,j] = 1
 
         # Definition of the synaptic matrix
@@ -209,14 +204,14 @@ for i in tqdm(range(mx)):
             # Compuation of the Jacobian
             J = -np.eye(N)+np.sqrt(np.diag(Dpart))@W@np.sqrt(np.diag(Dpart))
 
-            eig = np.linalg.eigvals(J)
+            eig, _ = np.linalg.eigh(J)
 
             eig_max[p] = np.max(eig)
             eig_min[p] = np.min(eig)
 
         # Computation of the average maximum and minimum eigen values for the Jacobian
         avgeig_max = np.max(eig_max)
-        avgeig_min = np.max(eig_min)
+        avgeig_min = np.min(eig_max)
 
         # Setting the entry of the matrix on the base of the stability properties
         if avgeig_max<0:
@@ -224,33 +219,25 @@ for i in tqdm(range(mx)):
         elif avgeig_max>=0:
             Q[i,j] = 1
 
-        Q_max[i,j] = avgeig_max
-        Q_min[i,j] = avgeig_min
-
 
 # Visualization with the countour plot
 [Y,X] = np.meshgrid(xstar,rho)
 plt.figure(figsize=(15,15))
-levels = np.linspace(start=np.min(Q_max)-0.01,stop=np.max(Q_max)+0.01, num = 40)
-#plt.contourf(Y, X, Q_max, levels = levels, cmap = matplotlib.cm.RdYlBu_r, vmin = -4, vmax = 4)
 plt.contourf(Y, X, Q, levels = [-1, 0, 1], colors = ['lightskyblue', 'lightsalmon'], alpha=.7)
 plt.contourf(Y, X, S, levels = [-1, 0, 1], colors = ['navy', 'red'], alpha=[.5, 0])
 plt.contourf(Y, X, S_ins_2, levels = [-1, 0, 1], colors = ['navy', 'firebrick'], alpha=[0, .5])
-#plt.scatter(0.2, 4.8, s=650, color='darkblue', marker='s', linewidth=2.0, edgecolor='black')
-#plt.scatter(0.8, 4.8, s=800, color='maroon', marker='*', linewidth=2.0, edgecolor='black')
+plt.scatter(0.2, 4.8, s=650, color='darkblue', marker='s', linewidth=2.0, edgecolor='black')
+plt.scatter(0.8, 4.8, s=800, color='maroon', marker='*', linewidth=2.0, edgecolor='black')
 plt.plot(np.nan, np.nan, color = 'firebrick', label = 'Instability condition', linewidth=6.0)
 plt.plot(np.nan, np.nan, color = 'salmon', label = 'Numerical instability', linewidth=6.0)
 plt.plot(np.nan, np.nan, color = 'lightskyblue', label = 'Numerical stability', linewidth=6.0)
 plt.plot(np.nan, np.nan, color = 'navy', label = 'Stability condition', linewidth=6.0)
 plt.legend()
-#clb = plt.colorbar()
-#clb.ax.set_title(r'$\lambda_{\text{max}}$')
 plt.contour(Y, X, Q, levels = [0, 1], colors=['lightskyblue'], linewidths=4.0)
 plt.contour(Y, X, S, levels = [0, 1], colors=['navy'] ,linestyles='dashed', linewidths=4.0)
 plt.contour(Y, X, S_ins_2, levels = [0, 1], colors=['maroon'] ,linestyles='dotted', linewidths=4.0)
 plt.ylabel(r'$\rho$')
 plt.xlabel(r'$\mathrm{I}^{\star}$')
-#plt.xlabel(r'$\Delta\mathrm{I}$')
 plt.savefig("PhaseLevelDiagram1.pdf", bbox_inches = 'tight', format = 'pdf')
 plt.close()
 
